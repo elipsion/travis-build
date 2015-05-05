@@ -66,6 +66,14 @@ module Travis
             global_env.delete_if { |v| v.is_a? Hash }
           end
 
+          ['rvm', 'jvm'].each { | key |
+            if config.has_key? key
+              if config[key].is_a? Array then
+                config[key] = config[key].first
+              end
+            end
+          }
+
           global_env
         end
 

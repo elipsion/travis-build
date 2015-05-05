@@ -5,9 +5,10 @@ module Travis
         def apply
           sh.fold 'git.tarball' do
             mkdir
-            download
+            download if tarball_url?
+            dump if tarball_data
             extract
-            move
+            cd
           end
         end
 
@@ -23,12 +24,17 @@ module Travis
             sh.cmd cmd, echo: echo, retry: true
           end
 
-          def extract
-            sh.cmd "tar xfz #{filename}"
+          def dump
+            cmd = "base64 -d <<'_END' > #{filename} \n#{tarball_data}\n_END"
+            echo = "Extracting #{filename}"
+            sh.cmd cmd, echo: echo
           end
 
-          def move
-            sh.mv "#{basename}-#{data.commit[0..6]}/*", dir, echo: false
+          def extract
+            sh.cmd "tar xfz #{filename} --strip-components 1 -C #{dir}"
+          end
+
+          def cd
             sh.cd dir
           end
 
@@ -44,8 +50,16 @@ module Travis
             data.slug.gsub('/', '-')
           end
 
+          def tarball_url?
+            data.api_url && data.commit
+          end
+
           def tarball_url
             "#{data.api_url}/tarball/#{data.commit}"
+          end
+
+          def tarball_data
+            data.tarball
           end
 
           def auth_header
